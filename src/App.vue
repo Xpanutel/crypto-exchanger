@@ -1,123 +1,82 @@
-<script> 
-import axios from 'axios'
+<script>
+import CryptoConvert from 'crypto-convert';
+import Input from './components/input.vue'
+import Selector from './components/selector.vue'
+
+const convert = new CryptoConvert();
 
 export default {
-  data() {
+  components: { Input, Selector },
+  data () {
     return {
-      city: '',
+      amount: 0,
+      cryptoFirst: '',
+      cryptoSecond: '',
       error: '',
-      country: null,
-      temp_c: null,
-      region: null,
-      precip_mm: null,
-      last_updated: null
-    }
-  },
-  computed: {
-    cityName() {
-      return "<" + this.city + ">";
+      result: 0
     }
   },
   methods: {
-    getWeather() {
-      if(this.city.trim().length < 2) {
-        this.error = 'Нужно звание более одного символа'
-        return false;
+    changeAmount(val) {
+      this.amount = val
+    },
+    setCryptoFirst(val) {
+      this.cryptoFirst = val
+    },
+    setCryptoSecond(val) {
+      this.cryptoSecond = val
+    },
+    async convert() {
+      if(this.amount <= 0) {
+        this.error = 'Введите значение больше 0';
+        this.result = 0;
+        return;
+      } else if(this.cryptoFirst == this.cryptoSecond) {
+        this.error = 'Выберите разные валюты для конвертации';
+        this.result = 0;
+        return;
+      } else if(this.cryptoFirst == '' || this.cryptoSecond == '') {
+        this.error = 'Выберите валюты для конвертации';
+        this.result = 0;
+        return;
       }
-      this.error = '';
+      
+      this.error = ''
 
-      axios.get(`http://api.weatherapi.com/v1/current.json?key=0a22dfa6f5f0407c8e8213332242804&q=${this.city}&aqi=no`)
-      .then(res => {
-          this.country = res.data.location.country;
-          return res.data;
-      })
-      .then(data => {
-          this.region = data.location.region;
-          return data;
-      })
-      .then(data => {
-          this.temp_c = data.current.temp_c;
-          return data;
-      })
-      .then(data => {
-          this.precip_mm = data.current.precip_mm;
-          return data;
-      })
-      .then(data => {
-          this.last_updated = data.current.last_updated;
-      });
+      await convert.ready();
+      if(this.cryptoFirst == 'BTC' && this.cryptoSecond == 'ETH')
+        this.result = convert.BTC.ETH(this.amount);
+      else if(this.cryptoFirst == 'BTC' && this.cryptoSecond == 'USDT')
+        this.result = convert.BTC.USDT(this.amount);
+      else if(this.cryptoFirst == 'ETH' && this.cryptoSecond == 'BTC')
+        this.result = convert.ETH.BTC(this.amount);
+      else if(this.cryptoFirst == 'ETH' && this.cryptoSecond == 'USDT')
+        this.result = convert.ETH.USDT(this.amount);
+      else if(this.cryptoFirst == 'USDT' && this.cryptoSecond == 'BTC')
+        this.result = convert.USDT.BTC(this.amount);
+      else if(this.cryptoFirst == 'USDT' && this.cryptoSecond == 'ETH')
+        this.result = convert.USDT.ETH(this.amount);
     }
   }
-}
+}  
 </script>
 
 <template>
-  <div className='wrapper'>
-    <h1>Погодное приложение</h1>
-    <p>Узнать погоду в городе: {{ city == "" ? "Вашем городе" : cityName }}</p>
-    <input v-model="city" type="text" placeholder="Введите город">
-    <button v-show="city != ''" @click="getWeather()">Узнать погоду</button>
-    <p className='error'>{{ error }}</p>
-    <div v-show="country != null && temp_c != null && region != null">
-      <p>Страна: {{ country }}</p>
-      <p>Регион: {{ region }}</p>
-      <p>Температура в цельсиях: {{ temp_c }}</p>
-      <p>Осадки в миллиметрах: {{ precip_mm }}</p>
-      <p>Последнее обноновление: {{ last_updated }}</p>
-    </div>
-  </div>
+  <h1>CRYPTO</h1>
+  <Input :changeAmount="changeAmount" :convert="convert"/>
+  <p v-if="error != ''" className='error'>{{ error }}</p>
+  <p v-if="result != 0" className='result'>{{ result }}</p>
+  <div className='selectors'>
+    <Selector :setCrypto="setCryptoFirst"/>
+    <Selector :setCrypto="setCryptoSecond"/>
+  </div>  
 </template>
 
 <style scoped>
-.error {
-  color: red;
-}
-
-.wrapper {
-  width: 900px;
-  height: 500px;
-  background-color: #121212;
-  border-radius: 100px;
-  padding: 20px;
-  text-align: center;
-  color: white;
-}
-
-.wrapper h1 {
-  margin-top: 50px;
-}
-
-.wrapper p {
-  margin-top: 20px;
-}
-
-.wrapper input{
-  margin-top: 30px;
-  background: transparent;
-  border: 0px;
-  color: #fcfcfc;
-  font-size: 14px;
-  padding: 5px 8px;
-  outline: none;
-  border-bottom: 2px solid #110813;
-}
-
-.wrapper input:focus{
-  border-bottom-color: #5219d6;
-}
-
-.wrapper button{
-  background: #0ff7d8;
-  color: white;
-  border-radius: 10px;
-  border: 2px solid #007767;
-  padding: 10px 15px;
-  margin-left: 20px;
-  cursor: pointer;
-  transition: transform 500ms ease;
-}
-
-.wrapper button:hover{
-  transform: scale(1.1) translateY(-3px)
+.selectors {
+  display: flex;
+  justify-content: center;
+  gap: 100px;
+  margin-top: 0 auto;
 }
 </style>
